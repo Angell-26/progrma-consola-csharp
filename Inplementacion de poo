@@ -1,0 +1,109 @@
+using Spectre.Console;
+using System;
+using System.Collections.Generic;
+
+class Program
+{
+    static void Main(string[] args)
+    {
+        Console.Write("Ingresa el monto del préstamo: ");
+        decimal monto = decimal.Parse(Console.ReadLine()!);
+
+        Console.Write("Ingresa el interés anual (%): ");
+        decimal interesAnual = decimal.Parse(Console.ReadLine()!);
+
+        Console.Write("Ingresa el plazo (meses): ");
+        int plazo = int.Parse(Console.ReadLine()!);
+
+        Prestamo prestamo = new Prestamo(monto, interesAnual, plazo);
+
+        var tabla = prestamo.GenerarTabla();
+
+        MostrarTabla(tabla);
+    }
+
+    static void MostrarTabla(List<Cuota> cuotas)
+    {
+        var table = new Table();
+        table.Border = TableBorder.Rounded;
+
+        table.AddColumn("No.");
+        table.AddColumn("Cuota");
+        table.AddColumn("Interés");
+        table.AddColumn("Capital");
+        table.AddColumn("Saldo");
+
+        foreach (var cuota in cuotas)
+        {
+            table.AddRow(
+                cuota.Numero.ToString(),
+                cuota.CuotaFija.ToString("F2"),
+                cuota.Interes.ToString("F2"),
+                cuota.Capital.ToString("F2"),
+                cuota.Saldo.ToString("F2")
+            );
+        }
+
+        AnsiConsole.Write(table);
+    }
+}
+
+class Prestamo
+{
+    public decimal Monto { get; }
+    public decimal InteresAnual { get; }
+    public int Plazo { get; }
+
+    private decimal InteresMensual => (InteresAnual / 100) / 12;
+
+    public Prestamo(decimal monto, decimal interesAnual, int plazo)
+    {
+        Monto = monto;
+        InteresAnual = interesAnual;
+        Plazo = plazo;
+    }
+
+    public decimal CalcularCuota()
+    {
+        decimal n = (decimal)Math.Pow(1 + (double)InteresMensual, Plazo);
+        return Monto * (InteresMensual * n) / (n - 1);
+    }
+
+    public List<Cuota> GenerarTabla()
+    {
+        List<Cuota> cuotas = new List<Cuota>();
+
+        decimal saldo = Monto;
+        decimal cuotaFija = CalcularCuota();
+
+        for (int i = 1; i <= Plazo; i++)
+        {
+            decimal interes = saldo * InteresMensual;
+            decimal capital = cuotaFija - interes;
+            saldo -= capital;
+
+            if (saldo < 0)
+                saldo = 0;
+
+            cuotas.Add(new Cuota
+            {
+                Numero = i,
+                CuotaFija = cuotaFija,
+                Interes = interes,
+                Capital = capital,
+                Saldo = saldo
+            });
+        }
+
+        return cuotas;
+    }
+}
+
+class Cuota
+{
+    public int Numero { get; set; }
+    public decimal CuotaFija { get; set; }
+    public decimal Interes { get; set; }
+    public decimal Capital { get; set; }
+    public decimal Saldo { get; set; }
+}
